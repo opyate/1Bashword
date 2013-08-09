@@ -8,7 +8,10 @@ TEMPORARY_CLEAR_TEXT_STATE_LOCATION=~/.1bashword_current
 
 clear_temp() {
 	touch $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
-	tail -n2 $BASE > $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+	cat <<CLR_TMP > $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+# This file doesn't actually contain the cleartext. It just points
+#+ to the location of the current cleartext session. Don't add anything here.
+CLR_TMP
 }
 
 if [ ! -e $TEMPORARY_CLEAR_TEXT_STATE_LOCATION ]; then
@@ -107,5 +110,3 @@ else
 	usage
 fi
 
-# This file doesn't actually contain the cleartext. It just points
-#+ to the location of the current cleartext session. Don't add anything here.
