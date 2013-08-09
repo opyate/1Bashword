@@ -3,6 +3,7 @@
 # Assumes bash (always), openssl (always), perl (once) and $EDITOR (maybe).
 
 BASE=$(basename $0)
+FULL=$(dirname $0)
 ENCRYPTED=~/.1bashword_encrypted
 TEMPORARY_CLEAR_TEXT_STATE_LOCATION=~/.1bashword_current
 
@@ -90,11 +91,17 @@ elif [ "$BASE" == "decrypt" ] ; then
 	fi
 else
 	echo "...for the first time. Creating symlinks."
-	if [ ! -e encrypt ]; then
-		ln -s $BASE encrypt
+	if [ ! -e $FULL/encrypt ]; then
+		ln -s $FULL/$BASE $FULL/encrypt
+	else
+		echo "$FULL/encrypt already exists. If this is your first run of 1bashword, please delete it then try again."
+		exit 1
 	fi
-	if [ ! -e decrypt ]; then
-		ln -s $BASE decrypt
+	if [ ! -e $FULL/decrypt ]; then
+		ln -s $FULL/$BASE $FULL/decrypt
+	else
+		echo "$FULL/decrypt already exists. If this is your first run of 1bashword, please delete it then try again."
+		exit 1
 	fi
 	echo "Where would you like to put the encrypted file? E.g. /Users/$(whoami)/Dropbox/pictures_of_kittens/kitteh.jpg"
 	echo "(Just <ENTER> to keep the current default of $ENCRYPTED)" 
