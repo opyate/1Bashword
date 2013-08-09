@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Made by @opyate
+# Assumes bash (always), openssl (always), perl (once) and $EDITOR (maybe).
+
+BASE=$(basename $0)
+ENCRYPTED=~/.1bashword_encrypted
+TEMPORARY_CLEAR_TEXT_STATE_LOCATION=~/.1bashword_current
+
+clear_temp() {
+	touch $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+	tail -n2 $BASE > $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+}
+
+if [ ! -e $TEMPORARY_CLEAR_TEXT_STATE_LOCATION ]; then
+	touch $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+	clear_temp
+fi
+
+usage() {
+	cat <<USAGEDOC
+
+Usage:
+	./encrypt
+		Encrypts the cleartext referenced in $TEMPORARY_CLEAR_TEXT_STATE_LOCATION to ciphertext in $ENCRYPTED
+	./decrypt
+		Decrypts the ciphertext in $ENCRYPTED to cleartext referenced in $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+USAGEDOC
+}
+
+echo "Running $BASE..."
+
+if [ "$BASE" == "encrypt" ]; then
+	DECRYPTED=$(sed -n '3,3p' $TEMPORARY_CLEAR_TEXT_STATE_LOCATION)
+	if [ "x" == "x$DECRYPTED" ]; then
+		echo "There is no current cleartext session. Press <ENTER> to start a new cleartext session..."
+		read IGNORED
+		DECRYPTED="$(mktemp -t 1bashword)"
+		echo "# Add your super-sensitive information here. Save, quit, then you will be prompted for a password and this file will be encrypted, then optionally deleted." > $DECRYPTED
+		if [ "vim" == $EDITOR ]; then
+			echo -e "# Want a new random password? Type the following sequence: GYq:p <then press ENTER> \n" >> $DECRYPTED
+			echo "r ! openssl rand -base64 16" >> $DECRYPTED
+		fi
+		echo $DECRYPTED >> $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+		# I assume your editor blocks, like my command-line vim does.
+		$EDITOR $DECRYPTED
+	else
+		echo "...on existing cleartext session at $DECRYPTED"
+	fi
+	ENC_LOC=$(dirname $ENCRYPTED)
+	if [ "~" != "$ENC_LOC" ]; then
+		mkdir -p $ENC_LOC
+	fi
+	touch $ENCRYPTED
+	openssl aes-256-cbc -in $DECRYPTED -out $ENCRYPTED
+	OPENSSL_EXIT=$?
+	if [ $OPENSSL_EXIT != 0 ]; then
+		exit $OPENSSL_EXIT
+	fi
+	echo
+	echo "File encrypted to $ENCRYPTED"
+	echo
+	echo "Delete $DECRYPTED? <ENTER> for YES, <Ctrl-C> for NO..."
+	echo "(You might as well -- the secret stuff is encrypted now.)"
+	read IGNORED
+	rm $DECRYPTED
+	clear_temp
+	echo "Deleted $DECRYPTED"
+elif [ "$BASE" == "decrypt" ] ; then
+	if [ -e $ENCRYPTED ]; then
+		echo "...on ciphertext at $ENCRYPTED"
+		DECRYPTED="$(mktemp -t 1bashword)"
+		echo $DECRYPTED >> $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+		openssl aes-256-cbc -d -in $ENCRYPTED -out $DECRYPTED
+		OPENSSL_EXIT=$?
+		if [ $OPENSSL_EXIT != 0 ]; then
+			exit $OPENSSL_EXIT
+		fi
+		echo "File decrypted to $DECRYPTED"
+		echo
+		echo "<ENTER> to edit it, or <Ctrl-C> to quit... (and then encrypt it again when you're done!)"
+		read IGNORED
+		$EDITOR $DECRYPTED
+	else
+		echo "$ENCRYPTED does not exist. Start a new one with ./encrypt"
+		usage
+		exit 1
+	fi
+else
+	echo "...for the first time. Creating symlinks."
+	if [ ! -e encrypt ]; then
+		ln -s $BASE encrypt
+	fi
+	if [ ! -e decrypt ]; then
+		ln -s $BASE decrypt
+	fi
+	echo "Where would you like to put the encrypted file? E.g. /Users/$(whoami)/Dropbox/pictures_of_kittens/kitteh.jpg"
+	echo "(Just <ENTER> to keep the current default of $ENCRYPTED)" 
+	read LOC
+	if [ "x" == "x$LOC" ]; then
+		# the user just pressed <ENTER>
+		echo "Keeping default of $ENCRYPTED"
+	else
+		export LOCATION=$LOC
+		perl -pi -e 's#~/.1bashword_encrypted#$ENV{LOCATION}#' $BASE
+	fi
+	echo "Done. Next time run with ./encrypt or ./decrypt instead."
+	usage
+fi
+
+# This file doesn't actually contain the cleartext. It just points
+#+ to the location of the current cleartext session. Don't add anything here.
