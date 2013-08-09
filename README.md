@@ -10,7 +10,7 @@ Clone, or download it to somewhere in your $PATH
 
 ...make it executable
 
-    chmod +x ~/bin/1bashword
+    chmod +x !$
 
 ...then run it once to set up. The program will tell you what to do next.
 
