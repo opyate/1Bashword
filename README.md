@@ -14,4 +14,6 @@ Clone, or download it to somewhere in your $PATH
 
 ...then run it once to set up. The program will tell you what to do next.
 
+# Disclaimer
 
+:skull: I accept no responsibility for lost ciphertext files. Please back your stuff up. :skull:

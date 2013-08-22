@@ -34,41 +34,49 @@ USAGEDOC
 echo "Running $BASE..."
 
 if [ "$BASE" == "encrypt" ]; then
-	DECRYPTED=$(sed -n '3,3p' $TEMPORARY_CLEAR_TEXT_STATE_LOCATION)
-	if [ "x" == "x$DECRYPTED" ]; then
-		echo "There is no current cleartext session. Press <ENTER> to start a new cleartext session..."
-		read IGNORED
-		DECRYPTED="$(mktemp -t 1bashword)"
-		echo "# Add your super-sensitive information here. Save, quit, then you will be prompted for a password and this file will be encrypted, then optionally deleted." > $DECRYPTED
-		if [[ "$EDITOR" == *vim* ]]; then
-			echo -e "# Want a new random password? Type the following sequence: GYq:p <then press ENTER> \n" >> $DECRYPTED
-			echo "r ! openssl rand -base64 16" >> $DECRYPTED
-		fi
-		echo $DECRYPTED >> $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
-		# I assume your editor blocks, like my command-line vim does.
-		$EDITOR $DECRYPTED
+	# first of all, the user may have more than one decrypted session
+	#+ and we don't want to make any assumptions
+	NUM_CLEARTEXT_SESSIONS=$(wc -l < $TEMPORARY_CLEAR_TEXT_STATE_LOCATION)
+	if [ $NUM_CLEARTEXT_SESSIONS -ge 4 ]; then
+		echo "You have multiple cleartext sessions. Please ensure one location remains in $TEMPORARY_CLEAR_TEXT_STATE_LOCATION and encrypt again."
+		exit $NUM_CLEARTEXT_SESSIONS
 	else
-		echo "...on existing cleartext session at $DECRYPTED"
+		DECRYPTED=$(sed -n '3,3p' $TEMPORARY_CLEAR_TEXT_STATE_LOCATION)
+		if [ "x" == "x$DECRYPTED" ]; then
+			echo "There is no current cleartext session. Press <ENTER> to start a new cleartext session..."
+			read IGNORED
+			DECRYPTED="$(mktemp -t 1bashword)"
+			echo "# Add your super-sensitive information here. Save, quit, then you will be prompted for a password and this file will be encrypted, then optionally deleted." > $DECRYPTED
+			if [[ "$EDITOR" == *vim* ]]; then
+				echo -e "# Want a new random password? Type the following sequence: GYq:p <then press ENTER> \n" >> $DECRYPTED
+				echo "r ! openssl rand -base64 16" >> $DECRYPTED
+			fi
+			echo $DECRYPTED >> $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+			# I assume your editor blocks, like my command-line vim does.
+			$EDITOR $DECRYPTED
+		else
+			echo "...on existing cleartext session at $DECRYPTED"
+		fi
+		ENC_LOC=$(dirname $ENCRYPTED)
+		if [ "~" != "$ENC_LOC" ]; then
+			mkdir -p $ENC_LOC
+		fi
+		touch $ENCRYPTED
+		openssl aes-256-cbc -in $DECRYPTED -out $ENCRYPTED
+		OPENSSL_EXIT=$?
+		if [ $OPENSSL_EXIT != 0 ]; then
+			exit $OPENSSL_EXIT
+		fi
+		clear_temp
+		echo
+		echo "File encrypted to $ENCRYPTED"
+		echo
+		echo "Delete $DECRYPTED? <ENTER> for YES, <Ctrl-C> for NO..."
+		echo "(You might as well -- the secret stuff is encrypted now.)"
+		read IGNORED
+		rm $DECRYPTED
+		echo "Deleted $DECRYPTED"
 	fi
-	ENC_LOC=$(dirname $ENCRYPTED)
-	if [ "~" != "$ENC_LOC" ]; then
-		mkdir -p $ENC_LOC
-	fi
-	touch $ENCRYPTED
-	openssl aes-256-cbc -in $DECRYPTED -out $ENCRYPTED
-	OPENSSL_EXIT=$?
-	if [ $OPENSSL_EXIT != 0 ]; then
-		exit $OPENSSL_EXIT
-	fi
-	echo
-	echo "File encrypted to $ENCRYPTED"
-	echo
-	echo "Delete $DECRYPTED? <ENTER> for YES, <Ctrl-C> for NO..."
-	echo "(You might as well -- the secret stuff is encrypted now.)"
-	read IGNORED
-	rm $DECRYPTED
-	clear_temp
-	echo "Deleted $DECRYPTED"
 elif [ "$BASE" == "decrypt" ] ; then
 	if [ -e $ENCRYPTED ]; then
 		echo "...on ciphertext at $ENCRYPTED"
