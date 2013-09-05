@@ -65,6 +65,7 @@ if [ "$BASE" == "encrypt" ]; then
 		openssl aes-256-cbc -in $DECRYPTED -out $ENCRYPTED
 		OPENSSL_EXIT=$?
 		if [ $OPENSSL_EXIT != 0 ]; then
+			echo "OpenSSL error. Try again with 'encrypt'"
 			exit $OPENSSL_EXIT
 		fi
 		clear_temp
