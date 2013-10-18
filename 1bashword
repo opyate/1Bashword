@@ -107,7 +107,22 @@ elif [ "$BASE" == "decrypt" ] ; then
 		echo
 		echo "<ENTER> to edit it, or <Ctrl-C> to quit... (and then encrypt it again when you're done!)"
 		read IGNORED
+		# if the user didn't make changes (i.e. they just wanted to grab
+		#+ an existing password), then offer to delete the temp file.
+		HASHBEFORE=$(openssl md5 $DECRYPTED)
 		$EDITOR $DECRYPTED
+		HASHAFTER=$(openssl md5 $DECRYPTED)
+		if [ "$HASHBEFORE" == "$HASHAFTER" ]; then
+			echo "You made no changes."
+			echo "Press <ENTER> to delete the temporary file at $DECRYPTED, or <Ctrl-C> to quit and keep the file..."
+			read IGNORED
+			rm $DECRYPTED
+			clear_temp
+			echo "Temp file deleted and session cleared."
+		else
+			echo "You made changes to $DECRYPTED"
+			echo "Please encrypt to keep those changes when you're done!"
+		fi
 	else
 		echo "$ENCRYPTED does not exist. Start a new one with ./encrypt"
 		usage
