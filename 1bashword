@@ -45,7 +45,7 @@ if [ "$BASE" == "encrypt" ]; then
 		if [ "x" == "x$DECRYPTED" ]; then
 			echo "There is no current cleartext session. Press <ENTER> to start a new cleartext session..."
 			read IGNORED
-			DECRYPTED="$(mktemp -t 1bashword)"
+			DECRYPTED="$(mktemp -t 1bashword.XXXXXX)"
 			echo "# Add your super-sensitive information here. Save, quit, then you will be prompted for a password and this file will be encrypted, then optionally deleted." > $DECRYPTED
 			if [[ "$EDITOR" == *vim* ]]; then
 				echo -e "# Want a new random password? Type the following sequence: GYq:p <then press ENTER> \n" >> $DECRYPTED
@@ -96,7 +96,7 @@ elif [ "$BASE" == "decrypt" ] ; then
 				clear_temp
 			fi
 		fi
-		DECRYPTED="$(mktemp -t 1bashword)"
+		DECRYPTED="$(mktemp -t 1bashword.XXXXXX)"
 		openssl aes-256-cbc -d -in $ENCRYPTED -out $DECRYPTED
 		OPENSSL_EXIT=$?
 		if [ $OPENSSL_EXIT != 0 ]; then
