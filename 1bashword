@@ -25,9 +25,9 @@ usage() {
 
 Usage:
 	./encrypt
-		Encrypts the cleartext referenced in $TEMPORARY_CLEAR_TEXT_STATE_LOCATION to ciphertext in $ENCRYPTED
+		Encrypts the cleartext referenced in $TEMPORARY_CLEAR_TEXT_STATE_LOCATION to ciphertext at $ENCRYPTED
 	./decrypt
-		Decrypts the ciphertext in $ENCRYPTED to cleartext referenced in $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
+		Decrypts the ciphertext at $ENCRYPTED to cleartext referenced in $TEMPORARY_CLEAR_TEXT_STATE_LOCATION
 USAGEDOC
 }
 
@@ -150,7 +150,9 @@ else
 		echo "Keeping default of $ENCRYPTED"
 	else
 		export LOCATION=$LOC
-		perl -pi -e 's#~/.1bashword_encrypted#$ENV{LOCATION}#' $BASE
+		perl -pi -e 's#~/.1bashword_encrypted#$ENV{LOCATION}#' $FULL/$BASE
+		# for 'usage'
+		export ENCRYPTED=$LOCATION 
 	fi
 	echo "Done. Next time run with ./encrypt or ./decrypt instead."
 	usage
